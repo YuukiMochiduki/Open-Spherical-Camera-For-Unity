@@ -1,2 +1,2 @@
-# UniTheta
-RICOH THETA API v2 Unity Wrapper
+# Open Sperical Camera for Unity
+- RICOH THETA API v2 Unity Wrapper
