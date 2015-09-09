@@ -26,39 +26,7 @@
         {
             try
             { 
-                IDictionary dict = (IDictionary)Json.Deserialize(json);
-
-                if (dict.Contains("name"))
-                {
-                    this.name = (string)dict["name"];
-                }
-
-                if (dict.Contains("state"))
-                {
-                    string _state = (string)dict["state"];
-
-                    this.state = (Status) System.Enum.Parse(typeof(Status), _state);
-                }
-
-                if (dict.Contains("id"))
-                {
-                    this.id = (string)dict["id"];
-                }
-
-                if (dict.Contains("results"))
-                {
-                    this.results = (IDictionary)dict["results"];
-                }
-
-                if (dict.Contains("error"))
-                {
-                    this.error = Error.Parse((string)dict["error"]);
-                }
-
-                if (dict.Contains("progress"))
-                {
-                    this.progress = (IDictionary)dict["progress"];
-                }
+                JSONUtil.DictionaryToObjectFiled( (IDictionary)Json.Deserialize(json), this);
             }
             catch
             {
