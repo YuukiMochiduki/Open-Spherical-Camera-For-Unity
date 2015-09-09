@@ -1,6 +1,6 @@
 ﻿namespace OpenSphericalCamera
 {
-    public class ThetaOptions
+    public class ThetaOptions : Options
     {
         public double _captureInterval;
 

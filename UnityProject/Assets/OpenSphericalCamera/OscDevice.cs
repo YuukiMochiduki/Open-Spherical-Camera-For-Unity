@@ -26,24 +26,22 @@
        
         #region Protocols
 
-        public void GetInfo(OnCompleteGetInfo callback)
-        {
-            var info = new Info();
-
-            StartCoroutine(GetInfoCoroutine(info, callback));
-        }
-
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="info"></param>
         /// <param name="callback">delegate void OnCompleteGetInfo(Info info, Error error)</param>
-        public void GetInfo(Info info, OnCompleteGetInfo callback)
+        public void GetInfo(OnCompleteGetInfo callback)
         {
-            StartCoroutine(GetInfoCoroutine(info, callback));
+            StartCoroutine(GetInfoCoroutine(typeof(Info), callback));
         }
 
-        private IEnumerator GetInfoCoroutine(Info info, OnCompleteGetInfo callback)
+        public void GetInfo(Type typeOfInfo, OnCompleteGetInfo callback)
+        {
+            StartCoroutine(GetInfoCoroutine(typeOfInfo, callback));
+        }
+
+
+        private IEnumerator GetInfoCoroutine(Type typeOfInfo, OnCompleteGetInfo callback)
         {
             WWW www = new WWW(Scheme + "://" + ipAddress + ":" + httpPort + "/osc/info");
 
@@ -68,6 +66,8 @@
             {
                 try
                 {
+                    var info = (Info) System.Activator.CreateInstance(typeOfInfo);
+
                     info.ParseJson(www.text);
 
                     callback(info, null);

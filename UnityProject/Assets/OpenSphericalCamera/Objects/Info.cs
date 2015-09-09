@@ -31,14 +31,7 @@
         {
             try
             {
-                IDictionary dict = (IDictionary)Json.Deserialize(json);
-
-                JSONUtil.DictionaryToObjectFiled(dict, this);
-
-                /*if (dict.Contains("endpoints"))
-                {
-                    JSONUtil.DictionaryToObjectFiled((IDictionary)dict["endpoints"], endpoints);                    
-                }*/
+                JSONUtil.DictionaryToObjectFiled((IDictionary)Json.Deserialize(json), this);
             }
             catch
             {            
