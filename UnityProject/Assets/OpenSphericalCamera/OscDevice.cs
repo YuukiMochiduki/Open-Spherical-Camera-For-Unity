@@ -306,6 +306,68 @@
             }
         }
 
+        // Commands/Status
+        public void CommandStatus(string id, Action<CommandResponse> callback)
+        {
+            StartCoroutine(CommandStatusCoroutine(id, callback));
+        }
+
+        private IEnumerator CommandStatusCoroutine(string id, Action<CommandResponse> callback)
+        {
+            WWWForm form = new WWWForm();
+
+            form.AddField("id", id);
+
+            WWW www = new WWW(Scheme + "://" + ipAddress + ":" + httpPort + "/osc/commands/status", form);
+
+            yield return www;
+
+            CommandResponse response = new CommandResponse();
+
+            if (!string.IsNullOrEmpty(www.error))
+            {
+                if (string.IsNullOrEmpty(www.text))
+                {
+                    Error error = new Error();
+
+                    error.message = www.error;
+
+                    response.error = error;
+
+                    callback(response);
+                }
+                else
+                {
+                    response.error = new Error(www.text);
+
+                    callback(response);
+                }
+            }
+            else
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(www.text))
+                        response.Parse(www.text);
+
+                    if (www.bytes != null)
+                        response.bytes = www.bytes;
+
+                    callback(response);
+                }
+                catch (Exception ex)
+                {
+                    Error error = new Error();
+
+                    error.message = ex.Message;
+
+                    response.error = error;
+
+                    callback(response);
+                }
+            }
+        }
+
         #endregion
 
         #region Commands
@@ -315,7 +377,7 @@
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="callback">delegate void OnCompleteStartSession(string sessionId, int timeout, Error error)</param>
+        /// <param name="callback">delegate void OnCompleteStartSession(string sessionId, int timeout, Error error);</param>
         public virtual void StartSession(OnCompleteStartSession callback)
         {
             CommandRequest request = new CommandRequest("camera.startSession");
@@ -395,7 +457,7 @@
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="callback">delegate void OnCompleteCloseSession(string sessionId, Error error)</param>
+        /// <param name="callback">delegate void OnCompleteCloseSession(CommandResponse response, string sessionId, Error error)</param>
         public void CloseSession(OnCompleteCloseSession callback)
         {
             CommandRequest request = new CommandRequest("camera.closeSession");
@@ -428,19 +490,14 @@
             });
         }
 
-        public delegate void OnCompleteTakePicture(string fileUri, Error error);
+        public delegate void OnCompleteTakePicture(CommandResponse response, string fileUri, Error error);
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="callback">delegate void OnCompleteTakePicture(CommandResponse response, string fileUri, Error error)</param>
         public void TakePicture(OnCompleteTakePicture callback)
         {
-            if (string.IsNullOrEmpty(currentSessionId))
-            {
-                Error error = new Error();
-
-                error.message = "Session is not started.";
-
-                callback(null, error);
-            }
-
             CommandRequest request = new CommandRequest("camera.takePicture");
 
             request.AddParameter("sessionId", currentSessionId);
@@ -449,7 +506,7 @@
             {
                 if (response.error != null)
                 {
-                    callback(null, response.error);
+                    callback(response, null, response.error);
                 }
                 else
                 {
@@ -457,7 +514,7 @@
                     {
                         string fileUri = (response.results.Contains("fileUri")) ? (string)response.results["fileUri"] : null;
 
-                        callback(fileUri, null);
+                        callback(response, fileUri, null);
                     }
                     catch (System.Exception ex)
                     {
@@ -465,7 +522,7 @@
 
                         error.message = ex.Message;
 
-                        callback(null, error);
+                        callback(response, null, error);
                     }
                 }
             });
@@ -473,11 +530,28 @@
 
         public delegate void OnCompleteListImages(List<Entry> entries, int totalEntries, string continuationToken, Error error);
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="entryCount"></param>
+        /// <param name="maxSize"></param>
+        /// <param name="continuationToken"></param>
+        /// <param name="includeThumb"></param>
+        /// <param name="callback">delegate void OnCompleteListImages(List<Entry> entries, int totalEntries, string continuationToken, Error error)</param>
         public void ListImages(int entryCount, int maxSize, string continuationToken, bool includeThumb, OnCompleteListImages callback)
         {
             ListImages(Type.GetType("Entry"), entryCount, maxSize, continuationToken, includeThumb, callback);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="entryType"></param>
+        /// <param name="entryCount"></param>
+        /// <param name="maxSize"></param>
+        /// <param name="continuationToken"></param>
+        /// <param name="includeThumb"></param>
+        /// <param name="callback">delegate void OnCompleteListImages(List<Entry> entries, int totalEntries, string continuationToken, Error error)</param>
         public void ListImages(Type entryType, int entryCount, int maxSize, string continuationToken, bool includeThumb, OnCompleteListImages callback)
         {
             CommandRequest request = new CommandRequest("camera.listImages");

@@ -95,7 +95,7 @@ public class ThetaSample : MonoBehaviour {
 
     public void TakePicture()
     {
-        theta.TakePicture((fileUri, error) =>
+        theta.TakePicture((response, fileUri, error) =>
         {
             if (error != null)
             {
