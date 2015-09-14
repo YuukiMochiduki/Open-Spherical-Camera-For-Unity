@@ -26,24 +26,36 @@
        
         #region Protocols
 
+        //========================================================================================
         /// <summary>
-        /// 
+        /// Retrieve basic information about the camera and functionality it supports.
         /// </summary>
         /// <param name="callback">delegate void OnCompleteGetInfo(Info info, Error error)</param>
+        //========================================================================================
         public void GetInfo(OnCompleteGetInfo callback)
         {
             StartCoroutine(GetInfoCoroutine(typeof(Info), callback));
         }
 
+        //========================================================================================
+        /// <summary>
+        /// Retrieve basic information about the camera and functionality it supports.
+        /// </summary>
+        /// <param name="typeOfInfo">The type of Info object. This is used if you use the vender specific inheritance Info object.</param>
+        /// <param name="callback">delegate void OnCompleteGetInfo(Info info, Error error)</param>
+        //========================================================================================
         public void GetInfo(Type typeOfInfo, OnCompleteGetInfo callback)
         {
             StartCoroutine(GetInfoCoroutine(typeOfInfo, callback));
         }
 
-
         private IEnumerator GetInfoCoroutine(Type typeOfInfo, OnCompleteGetInfo callback)
         {
-            WWW www = new WWW(Scheme + "://" + ipAddress + ":" + httpPort + "/osc/info");
+            var headers = new Dictionary<string, string>();
+
+            headers.Add("X-XSRF-Protected", "1");
+
+            WWW www = new WWW(Scheme + "://" + ipAddress + ":" + httpPort + "/osc/info", null, headers);
 
             yield return www;
 
@@ -93,23 +105,31 @@
         }
 
         /// <summary>
-        /// Acquires the camera status.
-        /// Changes in the state object content can be checked with CheckForUpdates.
+        /// Retrieve state attributes of the camera. 
         /// </summary>
-        /// <param name="ipAddress"></param>
-        /// <param name="httpPort"></param>
-        /// <param name="state"></param>
-        /// <param name="callback">delegate void OnCompleteGetState(string fingerprint, State state, Error error)</param>
-        public void GetState(State state, OnCompleteGetState callback)
+        /// <param name="callback"></param>
+        public void GetState(OnCompleteGetState callback)
         {
-            StartCoroutine(GetStateCoroutine(state, callback));
+            GetState(typeof(State), callback);
         }
 
-        private IEnumerator GetStateCoroutine(State state, OnCompleteGetState callback)
+        /// <summary>
+        /// Retrieve state attributes of the camera. 
+        /// </summary>
+        /// <param name="typeOfState">The type of State object. This is used if you use the vender specific inheritance State object.</param>
+        /// <param name="callback">delegate void OnCompleteGetState(string fingerprint, State state, Error error)</param>
+        public void GetState(Type typeOfState, OnCompleteGetState callback)
+        {
+            StartCoroutine(GetStateCoroutine(typeOfState, callback));
+        }
+
+        private IEnumerator GetStateCoroutine(Type typeOfState, OnCompleteGetState callback)
         {
             WWWForm form = new WWWForm();
 
             form.AddField("dummy", "dummy");
+
+            form.headers.Add("X-XSRF-Protected", "1");
 
             WWW www = new WWW(Scheme + "://" + ipAddress + ":" + httpPort + "/osc/state", form);
 
@@ -135,6 +155,8 @@
                 try
                 {
                     string fingerprint;
+
+                    var state = (State)System.Activator.CreateInstance(typeOfState);
 
                     state.Parse(www.text, out fingerprint);
 
@@ -168,6 +190,8 @@
             WWWForm form = new WWWForm();
 
             form.AddField("stateFingerprint", stateFingerprint);
+
+            form.headers.Add("X-XSRF-Protected", "1");
 
             WWW www = new WWW(Scheme + "://" + ipAddress + ":" + httpPort + "/osc/checkForUpdates", form);
 
@@ -215,9 +239,9 @@
         }
 
         /// <summary>
-        /// 
+        /// Executes specified commands on the camera. The output is a CommandResponse object.
         /// </summary>
-        /// <param name="request"></param>
+        /// <param name="request">CommandRequest object</param>
         /// <param name="callback">delegate void OnCompleteCommand(CommandResponse response)</param>
         public void CommandExecute(CommandRequest request, Action<CommandResponse> callback)
         {
@@ -226,11 +250,15 @@
 
         private IEnumerator CommandExecuteCoroutine(CommandRequest request, Action<CommandResponse> callback)
         {
+            var headers = new Dictionary<string, string>();
+
             WWWForm form = new WWWForm();
 
             form.AddField("name", request.name);
 
             form.AddField("parameters", request.InputParameters);
+
+            form.headers.Add("X-XSRF-Protected", "1");
 
             WWW www = new WWW(Scheme + "://" + ipAddress + ":" + httpPort + "/osc/checkForUpdates", form);
 
@@ -306,7 +334,11 @@
             }
         }
 
-        // Commands/Status
+        /// <summary>
+        /// Returns the status for previous inProgress commands. The status API is useful for polling the progress of a previously issued command; for example, determining whether camera.takePicture has completed.
+        /// </summary>
+        /// <param name="id">Command ID returned by a previous call to CommandExecute</param>
+        /// <param name="callback"> Action&lt;CommandResponse&gt;</param>
         public void CommandStatus(string id, Action<CommandResponse> callback)
         {
             StartCoroutine(CommandStatusCoroutine(id, callback));
@@ -317,6 +349,8 @@
             WWWForm form = new WWWForm();
 
             form.AddField("id", id);
+
+            form.headers.Add("X-XSRF-Protected", "1");
 
             WWW www = new WWW(Scheme + "://" + ipAddress + ":" + httpPort + "/osc/commands/status", form);
 
@@ -375,7 +409,7 @@
         public delegate void OnCompleteStartSession(string sessionId, int timeout, Error error);
 
         /// <summary>
-        /// 
+        /// Starts a session that times out after a fixed interval. Locks the camera to the requesting client and makes sure the camera stays awake.
         /// </summary>
         /// <param name="callback">delegate void OnCompleteStartSession(string sessionId, int timeout, Error error);</param>
         public virtual void StartSession(OnCompleteStartSession callback)
@@ -415,7 +449,7 @@
         public delegate void OnCompleteUpdateSession(string sessionId, int timeout, Error error);
 
         /// <summary>
-        /// 
+        /// Refreshes the session timeout. A session automatically updates on any interaction with the camera; for example, a session that starts with a 10-minute timeout should reset to the full 10 minutes when a takePicture command executes.
         /// </summary>
         /// <param name="callback">delegate void OnCompleteUpdateSession(string sessionId, int timeout, Error error)</param>
         public virtual void UpdateSession(OnCompleteUpdateSession callback)
@@ -452,6 +486,11 @@
             });
         }
 
+        /// <summary>
+        /// Disconnects the client from the camera.
+        /// </summary>
+        /// <param name="sessionId"></param>
+        /// <param name="error"></param>
         public delegate void OnCompleteCloseSession(string sessionId, Error error);
 
         /// <summary>
@@ -530,14 +569,6 @@
 
         public delegate void OnCompleteListImages(List<Entry> entries, int totalEntries, string continuationToken, Error error);
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="entryCount"></param>
-        /// <param name="maxSize"></param>
-        /// <param name="continuationToken"></param>
-        /// <param name="includeThumb"></param>
-        /// <param name="callback">delegate void OnCompleteListImages(List<Entry> entries, int totalEntries, string continuationToken, Error error)</param>
         public void ListImages(int entryCount, int maxSize, string continuationToken, bool includeThumb, OnCompleteListImages callback)
         {
             ListImages(Type.GetType("Entry"), entryCount, maxSize, continuationToken, includeThumb, callback);
@@ -551,7 +582,7 @@
         /// <param name="maxSize"></param>
         /// <param name="continuationToken"></param>
         /// <param name="includeThumb"></param>
-        /// <param name="callback">delegate void OnCompleteListImages(List<Entry> entries, int totalEntries, string continuationToken, Error error)</param>
+        /// <param name="callback">delegate void OnCompleteListImages(List&lt;Entry&gt; entries, int totalEntries, string continuationToken, Error error)</param>
         public void ListImages(Type entryType, int entryCount, int maxSize, string continuationToken, bool includeThumb, OnCompleteListImages callback)
         {
             CommandRequest request = new CommandRequest("camera.listImages");
@@ -646,12 +677,9 @@
                 callback(response.bytes, response.error);
             });
         }
-
-        /// <summary>
-        /// Returns file metadata given its URI. The image header lists the Exif and XMP fields.
-        /// </summary>
-        /// <param name="fileUri">the target file. Manufacturers decide whether to use absolute or relative URIs. Clients may treat this as an opaque identifier.</param>
-        /// <param name="callback"></param>
+        
+        // Returns file metadata given its URI. The image header lists the Exif and XMP fields. 
+        // <param name="fileUri">the target file. Manufacturers decide whether to use absolute or relative URIs. Clients may treat this as an opaque identifier.</param>
         public void GetMetaData(string fileUri, Action<ImageMeta, Error> callback)
         {
             CommandRequest request = new CommandRequest("camera.getMetadata");
@@ -691,13 +719,6 @@
             GetOptions(typeof(Options), sessionId, optionNames, callback);
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="typeOfOption"></param>
-        /// <param name="sessionId"></param>
-        /// <param name="optionNames"></param>
-        /// <param name="callback">Action(Options, Error)</param>
         public void GetOptions(Type typeOfOption, string sessionId, string[] optionNames, Action<Options, Error> callback)
         {
             CommandRequest request = new CommandRequest("camera.getOptions");
@@ -734,13 +755,7 @@
             });
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="sessionId"></param>
-        /// <param name="options"></param>
-        /// <param name="callback"> Action<Error></param>
-        public void SetOptions(string sessionId, Options options, Action<Error> callback)
+        public void SetOptions(string sessionId, IDictionary options, Action<Error> callback)
         {
             CommandRequest request = new CommandRequest("camera.setOptions");
 
