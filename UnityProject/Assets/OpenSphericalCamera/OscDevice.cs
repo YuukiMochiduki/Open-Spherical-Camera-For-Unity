@@ -16,9 +16,9 @@
 
         public string httpPort = "";
 
-        public delegate void OnCompleteGetInfo(Info info, Error error);
+        public delegate void OnCompleteGetInfo<T>(T info, Error error) where T : Info;
 
-        public delegate void OnCompleteGetState(string fingerprint, State state, Error error);
+        public delegate void OnCompleteGetState<T>(string fingerprint, T state, Error error) where T : State;
 
         public delegate void OnCompleteCheckForUpdates(string stateFingerPrint, Error error);
 
@@ -26,30 +26,12 @@
        
         #region Protocols
 
-        //========================================================================================
-        /// <summary>
-        /// Retrieve basic information about the camera and functionality it supports.
-        /// </summary>
-        /// <param name="callback">delegate void OnCompleteGetInfo(Info info, Error error)</param>
-        //========================================================================================
-        public void GetInfo(OnCompleteGetInfo callback)
+        public void GetInfo<T>(OnCompleteGetInfo<T> callback) where T : Info , new ()
         {
-            StartCoroutine(GetInfoCoroutine(typeof(Info), callback));
+            StartCoroutine(GetInfoCoroutine<T>(callback));
         }
 
-        //========================================================================================
-        /// <summary>
-        /// Retrieve basic information about the camera and functionality it supports.
-        /// </summary>
-        /// <param name="typeOfInfo">The type of Info object. This is used if you use the vender specific inheritance Info object.</param>
-        /// <param name="callback">delegate void OnCompleteGetInfo(Info info, Error error)</param>
-        //========================================================================================
-        public void GetInfo(Type typeOfInfo, OnCompleteGetInfo callback)
-        {
-            StartCoroutine(GetInfoCoroutine(typeOfInfo, callback));
-        }
-
-        private IEnumerator GetInfoCoroutine(Type typeOfInfo, OnCompleteGetInfo callback)
+        private IEnumerator GetInfoCoroutine<T>(OnCompleteGetInfo<T> callback) where T : Info, new()
         {
             var headers = new Dictionary<string, string>();
 
@@ -78,7 +60,7 @@
             {
                 try
                 {
-                    var info = (Info) System.Activator.CreateInstance(typeOfInfo);
+                    T info = new T();
 
                     info.ParseJson(www.text);
 
@@ -104,26 +86,12 @@
             callback(info, null);*/
         }
 
-        /// <summary>
-        /// Retrieve state attributes of the camera. 
-        /// </summary>
-        /// <param name="callback"></param>
-        public void GetState(OnCompleteGetState callback)
+        public void GetState<T>(OnCompleteGetState<T> callback) where T : State, new()
         {
-            GetState(typeof(State), callback);
+            StartCoroutine(GetStateCoroutine<T>(callback));
         }
 
-        /// <summary>
-        /// Retrieve state attributes of the camera. 
-        /// </summary>
-        /// <param name="typeOfState">The type of State object. This is used if you use the vender specific inheritance State object.</param>
-        /// <param name="callback">delegate void OnCompleteGetState(string fingerprint, State state, Error error)</param>
-        public void GetState(Type typeOfState, OnCompleteGetState callback)
-        {
-            StartCoroutine(GetStateCoroutine(typeOfState, callback));
-        }
-
-        private IEnumerator GetStateCoroutine(Type typeOfState, OnCompleteGetState callback)
+        private IEnumerator GetStateCoroutine<T>(OnCompleteGetState<T> callback) where T : State, new ()
         {
             WWWForm form = new WWWForm();
 
@@ -156,7 +124,7 @@
                 {
                     string fingerprint;
 
-                    var state = (State)System.Activator.CreateInstance(typeOfState);
+                    T state = new T();
 
                     state.Parse(www.text, out fingerprint);
 
@@ -567,23 +535,9 @@
             });
         }
 
-        public delegate void OnCompleteListImages(List<Entry> entries, int totalEntries, string continuationToken, Error error);
+        public delegate void OnCompleteListImages<T>(List<T> entries, int totalEntries, string continuationToken, Error error) where T : Entry;
 
-        public void ListImages(int entryCount, int maxSize, string continuationToken, bool includeThumb, OnCompleteListImages callback)
-        {
-            ListImages(Type.GetType("Entry"), entryCount, maxSize, continuationToken, includeThumb, callback);
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="entryType"></param>
-        /// <param name="entryCount"></param>
-        /// <param name="maxSize"></param>
-        /// <param name="continuationToken"></param>
-        /// <param name="includeThumb"></param>
-        /// <param name="callback">delegate void OnCompleteListImages(List&lt;Entry&gt; entries, int totalEntries, string continuationToken, Error error)</param>
-        public void ListImages(Type entryType, int entryCount, int maxSize, string continuationToken, bool includeThumb, OnCompleteListImages callback)
+        public void ListImages<T>(int entryCount, int maxSize, string continuationToken, bool includeThumb, OnCompleteListImages<T> callback) where T : Entry, new()
         {
             CommandRequest request = new CommandRequest("camera.listImages");
 
@@ -602,13 +556,13 @@
             {
                 if (response.error != null)
                 {
-                    callback(new List<Entry>(), 0, "", response.error);
+                    callback(new List<T>(), 0, "", response.error);
                 }
                 else
                 {
                     try
                     {
-                        var entries = new List<Entry>();
+                        var entries = new List<T>();
 
                         if (response.results.Contains("entries"))
                         {
@@ -616,7 +570,7 @@
 
                             foreach (IDictionary dict in list)
                             {
-                                var entry = (Entry) System.Activator.CreateInstance(entryType);
+                                T entry = new T();
 
                                 JSONUtil.DictionaryToObjectFiled(dict, entry);
 
@@ -637,7 +591,7 @@
 
                         error.message = ex.Message;
 
-                        callback(new List<Entry>(), 0, null, response.error);
+                        callback(new List<T>(), 0, null, response.error);
                     }
                 }
             });
@@ -714,12 +668,7 @@
             });
         }
 
-        public void GetOptions(string sessionId, string[] optionNames, Action<Options, Error> callback)
-        {
-            GetOptions(typeof(Options), sessionId, optionNames, callback);
-        }
-
-        public void GetOptions(Type typeOfOption, string sessionId, string[] optionNames, Action<Options, Error> callback)
+        public void GetOptions<T>(string sessionId, string[] optionNames, Action<T, Error> callback) where T : Options, new()
         {
             CommandRequest request = new CommandRequest("camera.getOptions");
 
@@ -737,11 +686,11 @@
                 {
                     try
                     {
-                        var options = Activator.CreateInstance(typeOfOption);
+                        T options = new T();
 
                         JSONUtil.DictionaryToObjectFiled(response.results, options);
 
-                        callback((Options)options, null);
+                        callback(options, null);
                     }
                     catch (System.Exception ex)
                     {

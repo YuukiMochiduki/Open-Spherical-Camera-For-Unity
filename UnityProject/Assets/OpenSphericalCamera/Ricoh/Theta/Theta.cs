@@ -44,50 +44,6 @@
         }
 
         /// <summary>
-        /// Retrieve state attributes of the Theta. 
-        /// </summary>
-        /// <param name="callback">delegate void OnCompleteGetThetaState(string fingerprint, ThetaState state, Error error)</param>
-        public void GetState(OnCompleteGetThetaState callback)
-        {
-            base.GetState(typeof(ThetaState), (_fingerprint, _state, _error ) => 
-            {
-                callback(_fingerprint, (ThetaState)_state, _error);
-            });
-        }
-
-        /// <summary>
-        /// Called when ListImages completed
-        /// </summary>
-        /// <param name="entries">The list of entrys that vender specific of theta.</param>
-        /// <param name="totalEntries">Total number of entries in storage.</param>
-        /// <param name="continuationToken"> (Optional) Set only if the result is incomplete (incomplete means any listing that does not include the last image). To fetch remaining entries, the client should call listImages command again with the token.</param>
-        /// <param name="error">Error</param>
-        public delegate void OnCompleteThetaListImages(List<ThetaEntry> entries, int totalEntries, string continuationToken, Error error);
-
-        /// <summary>
-        /// Lists all images in the camera.
-        /// </summary>
-        /// <param name="entryCount">Desired number of entries to return.</param>
-        /// <param name="maxSize">Maximum size of thumbnail images; max(thumbnail_width, thumbnail_height). Required only when includeThumb is true</param>
-        /// <param name="continuationToken">An opaque continuation token of type string, returned by previous listImages call, used to retrieve next images. Omit this parameter for the first listImages call. Note: The camera is responsible for the algorithm that generates the token. If continuation token is null, this parameter is not used.</param>
-        /// <param name="includeThumb">Defaults to true. Use false to omit thumbnail images from the result.</param>
-        /// <param name="callback">delegate void OnCompleteThetaListImages(List&lt;ThetaEntry&gt; entries, int totalEntries, string continuationToken, Error error)</param>
-        public void ListImages(int entryCount, int maxSize, string continuationToken, bool includeThumb, OnCompleteThetaListImages callback)
-        {
-            base.ListImages(typeof(ThetaEntry), entryCount, maxSize, continuationToken, includeThumb, (_entries, _totalEntries, _continuationToken, _error) => 
-            {
-                if (_error != null)
-                {
-                    callback(new List<ThetaEntry>(), _totalEntries, _continuationToken, _error);
-                }
-                else
-                {
-                    callback(_entries.ConvertAll(x => (ThetaEntry)x), _totalEntries, _continuationToken, _error);
-                }
-            });
-        }
-
-        /// <summary>
         /// Returns a full-size or scaled image given its URI. Input parameters include resolution. This is the only command that should return
         /// </summary>
         /// <param name="fileUri">URI of the target file. Manufacturers decide whether to use absolute or relative URIs. Clients may treat this as an opaque identifier.</param>

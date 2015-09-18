@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using OpenSphericalCamera;
 using OpenSphericalCamera.Ricoh;
 
 public class ThetaSample : MonoBehaviour {
@@ -11,7 +12,7 @@ public class ThetaSample : MonoBehaviour {
 
     public void GetInfo()
     {
-        theta.GetInfo((info, error) =>
+        theta.GetInfo<ThetaInfo>((info, error) =>
         {
             if (error != null)
             {
@@ -31,7 +32,7 @@ public class ThetaSample : MonoBehaviour {
 
     public void GetState()
     {
-        theta.GetState((fingerprint, state, error) =>
+        theta.GetState<ThetaState>((fingerprint, state, error) =>
         {
             if (error != null)
             {
@@ -110,7 +111,7 @@ public class ThetaSample : MonoBehaviour {
 
     public void ListImages()
     {
-        theta.ListImages(2, 640, "14", true, (entries, totalCount, continuationToken, error ) =>
+        theta.ListImages<ThetaEntry>(2, 640, "14", true, (entries, totalCount, continuationToken, error ) =>
         {
             if (error != null)
             {
@@ -134,7 +135,7 @@ public class ThetaSample : MonoBehaviour {
 
         optionNames.Add("isoSupport");
 
-        theta.GetOptions(theta.currentSessionId, optionNames.ToArray(), (options, error)=> 
+        theta.GetOptions<ThetaOptions>(theta.currentSessionId, optionNames.ToArray(), (options, error)=> 
         {
             if (error != null)
             {
